@@ -451,7 +451,8 @@
     <div class="card-title" style="font-size:15px; margin-top:16px; margin-bottom:10px;">📖 Personal Learning Progress Checklist</div>
     <div id="modal-student-syllabus-list"></div>
 
-    <div style="margin-top:20px"><button class="btn btn-red btn-sm" onclick="deleteStudent()" style="width:100%; justify-content: center;">🗑️ Purge Profile Permanently</button></div>
+    <div style="margin-top:20px"><button class="btn btn-primary btn-sm" onclick="openEditStudentForm(selectedStudentId)" style="width:100%; justify-content: center;">✏️ Edit Profile Details</button></div>
+    <div style="margin-top:10px"><button class="btn btn-red btn-sm" onclick="deleteStudent()" style="width:100%; justify-content: center;">🗑️ Purge Profile Permanently</button></div>
     <div style="margin-top:10px"><button class="btn btn-outline" onclick="closeModal()" style="width:100%; justify-content: center; padding: 10px;">Dismiss View</button></div>
   </div>
 </div>
@@ -932,6 +933,78 @@ function openStudentModal(id) {
 
   document.getElementById('modal-student-syllabus-list').innerHTML = sylHtml;
   document.getElementById('student-modal').classList.add('show');
+}
+
+function openEditStudentForm(id) {
+  const s = DB.students.find(x => x.id === id); if (!s) return;
+  const nameParts = s.name.split(' ');
+  const fname = nameParts[0] || '';
+  const lname = nameParts.slice(1).join(' ') || '';
+
+  const classOptions = ['Std 1','Std 2','Std 3','Std 4','Std 5','Std 6','Std 7','Std 8','Std 9','Std 10','Basic Computer','CCC','CCC Plus','Tally']
+    .map(c => `<option value="${c}" ${c === s.class ? 'selected' : ''}>${c === 'CCC' ? 'CCC Computer' : c}</option>`).join('');
+
+  const html = `
+    <div class="two-col">
+      <div class="form-group" style="flex:1;">
+        <label>First Name *</label>
+        <input type="text" id="edit-fname" value="${fname}">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Last Name *</label>
+        <input type="text" id="edit-lname" value="${lname}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Class / Course Track Assignment *</label>
+      <select id="edit-class">${classOptions}</select>
+    </div>
+    <div class="two-col">
+      <div class="form-group" style="flex:1;">
+        <label>Monthly Fees Rate (₹)</label>
+        <input type="number" id="edit-fees" value="${s.fees}">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Parent Mobile Contact</label>
+        <input type="tel" id="edit-mobile" value="${s.mobile || ''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Enrollment Date</label>
+      <input type="date" id="edit-joindate" value="${s.joinDate}">
+    </div>
+    <button class="btn btn-primary" onclick="saveStudentEdit('${id}')" style="width:100%; justify-content:center;">💾 Save Changes</button>
+    <div style="margin-top:10px"><button class="btn btn-outline" onclick="openStudentModal('${id}')" style="width:100%; justify-content: center; padding: 10px;">Cancel</button></div>
+  `;
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-student-syllabus-list').innerHTML = '';
+}
+
+function saveStudentEdit(id) {
+  const s = DB.students.find(x => x.id === id); if (!s) return;
+  const fname = document.getElementById('edit-fname').value.trim();
+  const lname = document.getElementById('edit-lname').value.trim();
+  const cls = document.getElementById('edit-class').value;
+  const fees = parseInt(document.getElementById('edit-fees').value) || 0;
+  const mobile = document.getElementById('edit-mobile').value.trim();
+  const joinDate = document.getElementById('edit-joindate').value || s.joinDate;
+
+  if (!fname || !lname || !cls) {
+    showToast('⚠️ Supply all parameter markers labeled with (*)');
+    return;
+  }
+
+  s.name = `${fname} ${lname}`;
+  s.class = cls;
+  s.fees = fees;
+  s.mobile = mobile;
+  s.joinDate = joinDate;
+  saveDB();
+  populateClassSelects();
+  renderDashboard();
+  renderStudentList();
+  showToast('✅ Profile updated successfully.');
+  openStudentModal(id);
 }
 
 function closeModal() { document.getElementById('student-modal').classList.remove('show'); }
